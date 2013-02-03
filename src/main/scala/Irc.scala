@@ -27,34 +27,81 @@ package org.conbere.irc
 
 import scala.util.parsing.combinator.RegexParsers
 
-object IrcParser extends RegexParsers {
+sealed trait Token
+sealed trait PrefixTarget extends Token
+
+object Tokens {
+  case class Server(name:String) extends PrefixTarget
+  case class Nick(name:String) extends PrefixTarget
+
+  case class User(name:String) extends Token
+  case class Channel(name:String) extends Token
+  case class UserMask(mask:String) extends Token
+  case class Command(name:String) extends Token
+  case class Param(value:String) extends Token
+
+  case class Prefix(target:PrefixTarget,
+                    user:Option[User],
+                    host:Option[Server]) extends Token
+
+  case class Message(prefix:Option[Prefix],
+                     command:Command,
+                     params:List[Param]) extends Token
+}
+
+object Parser extends RegexParsers {
+  import Tokens._
   override def skipWhitespace = false
 
-  def message = opt(':' ~ prefix ~ space) ~ command ~ params ~ crlf
-  def prefix = (servername | nick) ~ opt('!' ~ user) ~ opt('@' ~ host)
-  def command = word | number ~ number ~ number
+  def message:Parser[Message] =
+    opt(':' ~> prefix <~ space) ~
+    command ~
+    params ^^ {
+    case (prefix~command)~params =>
+      Message(prefix, command, params)
+  }
+
+  def prefix:Parser[Prefix] =
+    (serverName | nick) ~
+    opt('!' ~> user) ~
+    opt('@' ~> serverName) ^^ {
+    case (target~user)~host =>
+      Prefix(target, user, host)
+  }
+
+  def command:Parser[Command] =
+    (word | """[0-9]{3}""".r) ^^ (Command(_))
+
   def space = rep(' ')
-  def params: Parser[Any] = space ~> opt(':' ~> trailing | middle ~ params)
-  def middle = """[^:][^\s\r\n]+""".r
-  def trailing = """[^\r\n]+""".r
+
+  def params =
+    space ~> opt(repsep(middle, ' ') ~ (space ~> opt(':' ~> trailing))) ^^ {
+    case Some(result) =>
+      result match {
+        case ps~None => ps
+        case ps~Some(tr) => ps :+ tr
+      }
+    case None =>
+      List()
+  }
+
+  def middle:Parser[Param] = not(':') ~> """[^\s\r\n]+""".r ^^ (Param(_))
+  def trailing:Parser[Param] = """[^\r\n]+""".r ^^ (Param(_))
   def crlf = """\r\n""".r
 
   def target:Parser[Any] = to ~ opt(',' ~ target)
-  def to = channel | user ~ "@" ~ servername | nick | mask
-  def channel =  """[#|&].+""".r
-  def servername = host
-  def host = """"[a-zA-Z0-9.\-]+""".r
-  def nick = """\D\S+""".r
-  def mask =  """[#|$].+""".r
+  def to = channel | user ~ '@' ~ serverName | nick | mask
+  def channel:Parser[Channel] =  """[#|&].+""".r ^^ (Channel(_))
+  def serverName:Parser[Server] = host ^^ (Server(_))
+  def host = """[a-zA-Z0-9.\-]+""".r
+  def nick:Parser[Nick] = """\D\S+""".r ^^ (Nick(_))
+  def mask:Parser[UserMask] =  """[#|$].+""".r ^^ (UserMask(_))
 
-
-  def user = """\S+""".r
+  def user:Parser[User] = """\S+""".r ^^ (User(_))
   def startsWithColon = """:.+""".r
   def word = """[a-zA-Z]*""".r
   def number = """[0-9]""".r
   def special = """[-\[\]\\`^\{\}]""".r
-
-  def any = """.+""".r
 
   def apply(input:String) = parseAll(message, input)
 }
