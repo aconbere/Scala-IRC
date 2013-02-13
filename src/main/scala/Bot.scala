@@ -64,10 +64,7 @@ class Client( val domainName:String
           acc
       }
 
-      Message(None,
-              Command("JOIN"),
-              List(roomsN,
-                   keys))
+      Message(None, Command("JOIN"), List(roomsN, keys))
     }
 
     def pong(server:String) =
@@ -75,7 +72,9 @@ class Client( val domainName:String
   }
 }
 
-case class Room(name:String, key:Option[String])
+case class Room(name:String, key:Option[String]) {
+  val hasKey = !key.isEmpty
+}
 
 class Bot(client:Client, rooms:List[Room]) extends Actor {
   import Tokens._

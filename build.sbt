@@ -1,4 +1,4 @@
-name := "irc-parser"
+name := "irc"
 
 version := "0.1.0"
 
