@@ -147,7 +147,6 @@ object Main {
     val port = 6667
     val system = ActorSystem()
     val rooms = List(Room("#testroom", None))
-    val rooms = List()
     val client = new Client( "server"
                            , 6667
                            , "username"

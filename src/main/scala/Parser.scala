@@ -66,10 +66,7 @@ object Tokens {
     // TODO: look into how params actually need to look
     // for the traling param
     def outputString = {
-      val pre = prefix match {
-        case Some(_prefix) => _prefix.outputString + " "
-        case None => ""
-      }
+      val pre = prefix.map { p => p.outputString }.getOrElse("")
 
       pre + command.outputString + " " + params.mkString(" ")
     }
