@@ -2,10 +2,11 @@ import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 
-import org.conbere.irc.IrcParser
+import org.conbere.irc.Parser
+import org.conbere.irc.Tokens._
 
 @RunWith(classOf[JUnitRunner])
-class IrcParserSuite extends FunSuite {
+class ParserSuite extends FunSuite {
   val messages =
     List( "PASS secretpasswordhere"
         , "NICK Wiz"
@@ -69,11 +70,66 @@ class IrcParserSuite extends FunSuite {
 
   test("can parse") {
     messages.foreach { m =>
-      val result = IrcParser.apply(m + "\r\n") match {
-        case IrcParser.Success(_,_) => true
+      assert(Parser.apply(m) match {
+        case Parser.Success(_,_) => true
         case _ => false
-      }
-      assert(result)
+      }, "Failed to parse: " + m)
     }
+  }
+
+  test("can parse messages from the server with a prefix") {
+    val message = ":irc02.test.server.com 461 aconbot JOIN :Not enough parameters"
+    assert(Parser.apply(message) match {
+      case Parser.Success(Message(Some(Prefix("irc02.test.server.com", None, None)),
+                                  Command("461"),
+                                  List("aconbot",
+                                       "JOIN",
+                                       "Not enough parameters")), _) =>
+        true
+      case parse =>
+        println(parse)
+        false
+    }, "Failed to parse: " + message)
+  }
+
+  test("can parse commands correctly") {
+    val stringCommand = "JOIN"
+    val numericCommand = "461"
+
+    assert(Parser.parseAll(Parser.command, stringCommand) match {
+      case Parser.Success(Command("JOIN"), _) =>
+        true
+      case _ =>
+        false
+    }, "Failed to parse command: " + stringCommand)
+
+    assert(Parser.parseAll(Parser.command, numericCommand) match {
+      case Parser.Success(Command("461"), _) =>
+        true
+      case _ =>
+        false
+    }, "Failed to parse command: " + numericCommand)
+  }
+
+  test("can parse prefixes correctly") {
+    val server = "irc02.test.server.com"
+    val nick = "username!username@756.455.45.45"
+
+    assert(Parser.parseAll(Parser.prefix, server) match {
+      case Parser.Success(Prefix("irc02.test.server.com", None, None), _) =>
+        true
+      case parse =>
+        println(parse)
+        false
+    }, "Failed to parse server prefix: " + server)
+
+    assert(Parser.parseAll(Parser.prefix, nick) match {
+      case Parser.Success(Prefix("username", Some("username"), Some("756.455.45.45")), _) =>
+        true
+      case parse =>
+        println(parse)
+        false
+    }, "Failed to parse nick prefix: " + nick)
+
   }
 }

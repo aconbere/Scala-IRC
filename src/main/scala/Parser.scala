@@ -26,27 +26,54 @@ package org.conbere.irc
 */
 
 import scala.util.parsing.combinator.RegexParsers
+import akka.util.{ ByteString, ByteStringBuilder }
 
-sealed trait Token
-sealed trait PrefixTarget extends Token
+sealed trait Token {
+  import ControlChars._
+
+  def outputString:String
+  def toByteString() = {
+    println("sending: " + outputString)
+    (new ByteStringBuilder ++= ByteString(outputString) ++= CRLF).result
+  }
+}
+
+sealed trait SimpleToken extends Token {
+  val value:String
+  def outputString = value
+}
 
 object Tokens {
-  case class Server(name:String) extends PrefixTarget
-  case class Nick(name:String) extends PrefixTarget
+  case class Channel(value:String) extends SimpleToken
+  case class UserMask(value:String) extends SimpleToken
+  case class Command(value:String) extends SimpleToken
 
-  case class User(name:String) extends Token
-  case class Channel(name:String) extends Token
-  case class UserMask(mask:String) extends Token
-  case class Command(name:String) extends Token
-  case class Param(value:String) extends Token
-
-  case class Prefix(target:PrefixTarget,
-                    user:Option[User],
-                    host:Option[Server]) extends Token
+  case class Prefix(target:String,
+                    user:Option[String],
+                    host:Option[String])
+  extends Token {
+    def outputString =
+      List(target,
+           user.getOrElse(""),
+           host.getOrElse("")).mkString(" ")
+  }
 
   case class Message(prefix:Option[Prefix],
                      command:Command,
-                     params:List[Param]) extends Token
+                     params:List[String])
+  extends Token {
+    import ControlChars._
+    // TODO: look into how params actually need to look
+    // for the traling param
+    def outputString = {
+      val pre = prefix match {
+        case Some(_prefix) => _prefix.outputString + " "
+        case None => ""
+      }
+
+      pre + command.outputString + " " + params.mkString(" ")
+    }
+  }
 }
 
 object Parser extends RegexParsers {
@@ -54,7 +81,7 @@ object Parser extends RegexParsers {
   override def skipWhitespace = false
 
   def message:Parser[Message] =
-    opt(':' ~> prefix <~ space) ~
+    opt(":" ~> prefix <~ space) ~
     command ~
     params ^^ {
     case (prefix~command)~params =>
@@ -62,15 +89,12 @@ object Parser extends RegexParsers {
   }
 
   def prefix:Parser[Prefix] =
-    (serverName | nick) ~
-    opt('!' ~> user) ~
-    opt('@' ~> serverName) ^^ {
-    case (target~user)~host =>
-      Prefix(target, user, host)
+    (serverName | nick ) ~ opt( '!' ~> user ) ~ opt( '@' ~> serverName ) ^^ {
+    case t~u~s => Prefix(t, u, s)
   }
 
   def command:Parser[Command] =
-    (word | """[0-9]{3}""".r) ^^ (Command(_))
+    ("""[0-9]{3}""".r | word) ^^ (Command(_))
 
   def space = rep(' ')
 
@@ -85,19 +109,21 @@ object Parser extends RegexParsers {
       List()
   }
 
-  def middle:Parser[Param] = not(':') ~> """[^\s\r\n]+""".r ^^ (Param(_))
-  def trailing:Parser[Param] = """[^\r\n]+""".r ^^ (Param(_))
+  def middle = not(':') ~> """[^\s\r\n]+""".r
+  def trailing = """[^\r\n]+""".r
   def crlf = """\r\n""".r
 
   def target:Parser[Any] = to ~ opt(',' ~ target)
   def to = channel | user ~ '@' ~ serverName | nick | mask
   def channel:Parser[Channel] =  """[#|&].+""".r ^^ (Channel(_))
-  def serverName:Parser[Server] = host ^^ (Server(_))
+  def serverName = host
   def host = """[a-zA-Z0-9.\-]+""".r
-  def nick:Parser[Nick] = """\D\S+""".r ^^ (Nick(_))
-  def mask:Parser[UserMask] =  """[#|$].+""".r ^^ (UserMask(_))
 
-  def user:Parser[User] = """\S+""".r ^^ (User(_))
+  def nick = """(\p{L}|[0-9]|[-\[\]\\`^\{\}])+""".r
+
+  def mask:Parser[UserMask] =  """[#|$].+""".r ^^ (UserMask(_))
+  def letter = """[a-zA-Z]""".r
+  def user = nick
   def startsWithColon = """:.+""".r
   def word = """[a-zA-Z]*""".r
   def number = """[0-9]""".r
