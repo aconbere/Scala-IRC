@@ -27,54 +27,9 @@ package org.conbere.irc
 
 import scala.util.parsing.combinator.RegexParsers
 import akka.util.{ ByteString, ByteStringBuilder }
-
-sealed trait Token {
-  import ControlChars._
-
-  def outputString:String
-  def toByteString() = {
-    println("sending: " + outputString)
-    (new ByteStringBuilder ++= ByteString(outputString) ++= CRLF).result
-  }
-}
-
-sealed trait SimpleToken extends Token {
-  val value:String
-  def outputString = value
-}
-
-object Tokens {
-  case class Channel(value:String) extends SimpleToken
-  case class UserMask(value:String) extends SimpleToken
-  case class Command(value:String) extends SimpleToken
-
-  case class Prefix(target:String,
-                    user:Option[String],
-                    host:Option[String])
-  extends Token {
-    def outputString =
-      List(target,
-           user.getOrElse(""),
-           host.getOrElse("")).mkString(" ")
-  }
-
-  case class Message(prefix:Option[Prefix],
-                     command:Command,
-                     params:List[String])
-  extends Token {
-    import ControlChars._
-    // TODO: look into how params actually need to look
-    // for the traling param
-    def outputString = {
-      val pre = prefix.map { p => p.outputString }.getOrElse("")
-
-      pre + command.outputString + " " + params.mkString(" ")
-    }
-  }
-}
+import Tokens._
 
 object Parser extends RegexParsers {
-  import Tokens._
   override def skipWhitespace = false
 
   def message:Parser[Message] =
@@ -114,9 +69,12 @@ object Parser extends RegexParsers {
   def to = channel | user ~ '@' ~ serverName | nick | mask
   def channel:Parser[Channel] =  """[#|&].+""".r ^^ (Channel(_))
   def serverName = host
-  def host = """[a-zA-Z0-9.\-]+""".r
-
-  def nick = """(\p{L}|[0-9]|[-\[\]\\`^\{\}])+""".r
+  
+  // have to specifically specify what a host is not because the parser is NOT
+  // backtracking. Thus will comsume up to the character that is an invalid
+  // host char (like _) and then fail.
+  def host = """[a-zA-Z0-9.\-^_\-\[\]\\`]+""".r
+  def nick = """(\p{L}|[0-9]|[-_\[\]\\`^\{\}])+""".r
 
   def mask:Parser[UserMask] =  """[#|$].+""".r ^^ (UserMask(_))
   def letter = """[a-zA-Z]""".r

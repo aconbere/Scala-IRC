@@ -1,18 +1,21 @@
 package org.conbere.irc
 
 import java.net.InetSocketAddress
+import ControlChars._
+import Tokens._
 
+/* I'm not really happy with this class, it kind of represents
+  All the necessary config data to initiate a connection
+  but that responsibility seems overly broad and weird.
+*/
 class Client( val domainName:String
             , val port:Int
             , val userName:String
             , val password:String
             , val nickName:String
-            , val hostName:String
-            , val serverName:String
             , val realName:String) {
 
-  import ControlChars._
-  import Tokens._
+  val hostName = java.net.InetAddress.getLocalHost.getHostName
 
   def address = new InetSocketAddress(domainName, port)
 
@@ -31,8 +34,8 @@ class Client( val domainName:String
       Message(None,
               Command("USER"),
               List(userName,
-                   hostName,
-                   serverName,
+                   hostName, 
+                   domainName,
                    realName))
 
 

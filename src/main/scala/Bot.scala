@@ -6,9 +6,11 @@ import akka.util.{ ByteString, ByteStringBuilder }
 import Tokens._
 import ControlChars._
 
-class Bot(client:Client, rooms:List[Room], responder:BotResponder)
-extends Actor {
-
+class Bot (
+  client:Client,
+  rooms:List[Room],
+  responder:BotResponder
+) extends Actor {
   val state = IO.IterateeRef.Map.async[IO.Handle]()(context.dispatcher)
 
   def utf8(bytes:ByteString) = bytes.decodeString("UTF-8").trim
@@ -18,13 +20,22 @@ extends Actor {
     IOManager(context.system).connect(client.address)
   }
 
+  def parseMessage(str:String) =
+    Parser.apply(str) match {
+      case Parser.Success(message, _) =>
+        Some(message)
+      case _ =>
+        println("Could not parse")
+        None
+    }
+
   def readMessage =
     for {
       in <- IO.takeUntil(CRLF)
     } yield {
       val str = utf8(in)
       println("Message: " + str)
-      Parser.apply(str)
+      parseMessage(str)
     }
 
   def login(socket:IO.SocketHandle) = {
@@ -61,13 +72,13 @@ extends Actor {
       state(socket).flatMap(_ =>
         IO.repeat {
           for {
-            parserOutput <- readMessage
+            ioMessage <- readMessage
           } yield {
-            parserOutput match {
-              case Parser.Success(message, _) =>
-                respondTo(socket, message)
-              case _ =>
-                println("Could not parse")
+            for {
+              message <- ioMessage
+            } yield {
+              println(message)
+              respondTo(socket, message)
             }
           }
         }
@@ -82,34 +93,3 @@ extends Actor {
       state -= socket
   }
 }
-
-object Main {
-  class Responder extends BotResponder {
-    def respondTo(message:Message) = message match {
-      case msg@Message(prefix, Command("PRIVMSG"), params) =>
-        println("PRIVMSG")
-        println(msg)
-        None
-      case msg@Message(_, _, _) =>
-        println(msg)
-        None
-    }
-  }
-
-  def main(args:Array[String]) = {
-    val port = 6667
-    val system = ActorSystem()
-    val rooms = List(Room("#testroom", None))
-    val client = new Client( "irc.ny4dev.etsy.com"
-                           , 6667
-                           , "avibot"
-                           , "all_hail_etsy"
-                           , "avibot"
-                           , "opae"
-                           , "opae"
-                           , "Avi Bot")
-    val responder = new Responder
-    val server = system.actorOf(Props(new Bot(client, rooms, responder)))
-  }
-}
-

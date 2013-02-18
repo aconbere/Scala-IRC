@@ -132,4 +132,15 @@ class ParserSuite extends FunSuite {
     }, "Failed to parse nick prefix: " + nick)
 
   }
+
+  test("can parse underscore usernames") {
+    val prefix = "aconbere_!aconbere@172.16.18.94"
+    assert(Parser.parseAll(Parser.prefix, prefix) match {
+      case Parser.Success(Prefix("aconbere_", Some("aconbere"), Some("172.16.18.94")), _) =>
+        true
+      case parse =>
+        println(parse)
+        false
+    }, "failed to parser message with underscore: " + prefix)
+  }
 }
