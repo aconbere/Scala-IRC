@@ -31,8 +31,9 @@ import Tokens._
 
 object Parser extends RegexParsers {
   override def skipWhitespace = false
+  def apply(input:String) = parseAll(message, input)
 
-  def message:Parser[Message] =
+  lazy val message:Parser[Message] =
     opt(":" ~> prefix <~ space) ~
     command ~
     params ^^ {
@@ -40,17 +41,17 @@ object Parser extends RegexParsers {
       Message(prefix, command, params)
   }
 
-  def prefix:Parser[Prefix] =
+  lazy val prefix:Parser[Prefix] =
     (serverName | nick ) ~ opt( '!' ~> user ) ~ opt( '@' ~> serverName ) ^^ {
     case t~u~s => Prefix(t, u, s)
   }
 
-  def command:Parser[Command] =
+  lazy val command:Parser[Command] =
     ("""[0-9]{3}""".r | word) ^^ (Command(_))
 
-  def space = rep(' ')
+  lazy val space = rep(' ')
 
-  def params =
+  lazy val params =
     space ~> opt(repsep(middle, ' ') ~ (space ~> opt(':' ~> trailing))) ^^ {
     case Some(result) =>
       result match {
@@ -61,28 +62,27 @@ object Parser extends RegexParsers {
       List()
   }
 
-  def middle = not(':') ~> """[^\s\r\n]+""".r
-  def trailing = """[^\r\n]+""".r
-  def crlf = """\r\n""".r
+  lazy val middle = not(':') ~> """[^\s\r\n]+""".r
+  lazy val trailing = """[^\r\n]+""".r
+  lazy val crlf = """\r\n""".r
 
-  def target:Parser[Any] = to ~ opt(',' ~ target)
-  def to = channel | user ~ '@' ~ serverName | nick | mask
-  def channel:Parser[Channel] =  """[#|&].+""".r ^^ (Channel(_))
-  def serverName = host
+  lazy val target:Parser[Any] = to ~ opt(',' ~ target)
+  lazy val to = channel | user ~ '@' ~ serverName | nick | mask
+  lazy val channel:Parser[Channel] =  """[#|&].+""".r ^^ (Channel(_))
+  lazy val serverName = host
   
   // have to specifically specify what a host is not because the parser is NOT
   // backtracking. Thus will comsume up to the character that is an invalid
   // host char (like _) and then fail.
-  def host = """[a-zA-Z0-9.\-^_\-\[\]\\`]+""".r
-  def nick = """(\p{L}|[0-9]|[-_\[\]\\`^\{\}])+""".r
+  lazy val host = """[a-zA-Z0-9.\-^_\-\[\]\\`]+""".r
+  lazy val nick = """(\p{L}|[0-9]|[-_\[\]\\`^\{\}])+""".r
 
-  def mask:Parser[UserMask] =  """[#|$].+""".r ^^ (UserMask(_))
-  def letter = """[a-zA-Z]""".r
-  def user = nick
-  def startsWithColon = """:.+""".r
-  def word = """[a-zA-Z]*""".r
-  def number = """[0-9]""".r
-  def special = """[-\[\]\\`^\{\}]""".r
+  lazy val mask:Parser[UserMask] =  """[#|$].+""".r ^^ (UserMask(_))
+  lazy val letter = """[a-zA-Z]""".r
+  lazy val user = nick
+  lazy val startsWithColon = """:.+""".r
+  lazy val word = """[a-zA-Z]*""".r
+  lazy val number = """[0-9]""".r
+  lazy val special = """[-\[\]\\`^\{\}]""".r
 
-  def apply(input:String) = parseAll(message, input)
 }
