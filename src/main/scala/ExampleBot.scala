@@ -1,13 +1,14 @@
 package org.conbere.irc
 
 import Tokens._
+import Messages._
 import akka.actor._
 
 object Main {
   class Responder extends BotResponder {
     def respondTo(message:Message) = message match {
-      case msg@Message(prefix, Command("PRIVMSG"), params) =>
-        println("PRIVMSG: " + msg)
+      case PrivMsg(to, from, text) =>
+        println("PRIVMSG: " + to + ", " + from + " " + text)
         None
       case msg@Message(_, _, _) =>
         println(msg)

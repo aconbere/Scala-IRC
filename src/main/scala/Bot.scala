@@ -5,6 +5,7 @@ import akka.util.{ ByteString, ByteStringBuilder }
 
 import Tokens._
 import ControlChars._
+import Messages._
 
 class Bot (
   client:Client,
@@ -39,19 +40,19 @@ class Bot (
     }
 
   def login(socket:IO.SocketHandle) = {
-    socket.write(client.Commands.pass.toByteString)
-    socket.write(client.Commands.nick.toByteString)
-    socket.write(client.Commands.user.toByteString)
+    socket.write(client.pass.toByteString)
+    socket.write(client.nick.toByteString)
+    socket.write(client.user.toByteString)
   }
 
   def respondTo(socket:IO.SocketHandle, message:Message):Unit = {
     message match {
-      case Message(_, Command("PING"), List(server)) =>
-        println("ping from: " + server)
-        socket.write(client.Commands.pong(server).toByteString)
-      case Message(_, Command("MODE"), params) =>
+      case Ping(from) =>
+        println("ping from: " + from)
+        socket.write(Pong(from).toByteString)
+      case Mode(params) =>
         println("Mode set to: " + params)
-        socket.write(client.Commands.join(rooms).toByteString)
+        socket.write(Join(rooms).toByteString)
       case _ =>
         // nothin
     }
