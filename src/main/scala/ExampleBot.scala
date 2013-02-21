@@ -20,12 +20,12 @@ object Main {
     val port = 6667
     val system = ActorSystem()
     val rooms = List(Room("#testroom", None))
-    val client = new Client( "irc.ny4dev.etsy.com"
+    val client = new Client( "irc.test.server.com"
                            , 6667
-                           , "avibot"
-                           , "all_hail_etsy"
-                           , "avibot"
-                           , "Avi Bot")
+                           , "testbot"
+                           , "password"
+                           , "testbot"
+                           , "Test Bot")
     val responder = new Responder
     val server = system.actorOf(Props(new Bot(client, rooms, responder)))
   }
