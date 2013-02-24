@@ -1,5 +1,7 @@
 package org.conbere.irc
 
+import com.typesafe.scalalogging.log4j.Logging
+
 import akka.actor._
 import akka.util.{ ByteString, ByteStringBuilder }
 
@@ -7,17 +9,14 @@ import Tokens._
 import ControlChars._
 import Messages._
 
-class Bot (
-  client:Client,
-  rooms:List[Room],
-  responder:BotResponder
-) extends Actor {
+class Bot ( client:Client, rooms:List[Room], responder:BotResponder)
+extends Actor with Logging {
   val state = IO.IterateeRef.Map.async[IO.Handle]()(context.dispatcher)
 
   def utf8(bytes:ByteString) = bytes.decodeString("UTF-8").trim
 
   override def preStart {
-    println("Connecting to " + client.domainName)
+    logger.debug("Connecting to " + client.domainName)
     IOManager(context.system).connect(client.address)
   }
 
@@ -26,7 +25,7 @@ class Bot (
       case Parser.Success(message, _) =>
         Some(message)
       case _ =>
-        println("Could not parse")
+        logger.error("Could not parse: " + str)
         None
     }
 
@@ -34,9 +33,7 @@ class Bot (
     for {
       in <- IO.takeUntil(CRLF)
     } yield {
-      val str = utf8(in)
-      println("Message: " + str)
-      parseMessage(str)
+      parseMessage(utf8(in))
     }
 
   def login(socket:IO.SocketHandle) = {
@@ -48,10 +45,8 @@ class Bot (
   def respondTo(socket:IO.SocketHandle, message:Message):Unit = {
     message match {
       case Ping(from) =>
-        println("ping from: " + from)
         socket.write(Pong(from).toByteString)
       case Mode(params) =>
-        println("Mode set to: " + params)
         socket.write(Join(rooms).toByteString)
       case _ =>
         // nothin
@@ -66,7 +61,7 @@ class Bot (
 
   def receive = {
     case IO.Connected(socket, address) =>
-      println("Connected to: " + address)
+      logger.debug("Connected to: " + address)
 
       login(socket)
 
@@ -78,7 +73,6 @@ class Bot (
             for {
               message <- ioMessage
             } yield {
-              println(message)
               respondTo(socket, message)
             }
           }
@@ -89,7 +83,7 @@ class Bot (
       state(socket)(IO.Chunk(bytes))
 
     case IO.Closed(socket, cause) =>
-      println("Closed")
+      logger.debug("Socket closed")
       state(socket)(IO.EOF)
       state -= socket
   }

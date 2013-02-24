@@ -8,7 +8,6 @@ object Tokens {
   sealed trait Token {
     def outputString:String
     def toByteString() = {
-      println("sending: " + outputString)
       (new ByteStringBuilder ++= ByteString(outputString) ++= CRLF).result
     }
   }

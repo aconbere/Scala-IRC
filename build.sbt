@@ -1,22 +1,32 @@
 name := "irc"
 
+version := "0.1.0"
+
 organization := "org.conbere"
 
-version := "0.1.0"
+licenses := Seq("BSD-style" -> url("http://www.opensource.org/licenses/bsd-license.php"))
+
+homepage := Some(url("http://github.com/aconbere/scala-irc"))
 
 scalaVersion := "2.10.0"
 
-scalacOptions += "-deprecation"
+scalacOptions ++= Seq(
+  "-deprecation",
+  "-feature"
+)
 
-scalacOptions += "-feature"
+fork in run := true
 
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-libraryDependencies += "org.scalatest" % "scalatest_2.10" % "1.9.1" % "test"
-
-libraryDependencies += "junit" % "junit" % "4.10" % "test"
-
-libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.1.0"
+libraryDependencies ++= Seq(
+  "org.scalatest" % "scalatest_2.10" % "1.9.1" % "test"
+, "junit" % "junit" % "4.10" % "test"
+, "com.typesafe.akka" %% "akka-actor" % "2.1.0"
+, "org.apache.logging.log4j" % "log4j-core" % "2.0-beta3"
+, "com.typesafe" %% "scalalogging-log4j" % "1.0.1"
+, "com.typesafe" % "config" % "1.0.0"
+)
 
 testOptions in Test += Tests.Argument("-oDF")
 
@@ -32,10 +42,6 @@ publishTo <<= version { (v: String) =>
 }
 
 pomIncludeRepository := { _ => false }
-
-licenses := Seq("BSD-style" -> url("http://www.opensource.org/licenses/bsd-license.php"))
-
-homepage := Some(url("http://github.com/aconbere/scala-irc"))
 
 pomExtra := (
   <scm>

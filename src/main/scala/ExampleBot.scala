@@ -3,15 +3,16 @@ package org.conbere.irc
 import Tokens._
 import Messages._
 import akka.actor._
+import com.typesafe.scalalogging.log4j.Logging
 
 object Main {
-  class Responder extends BotResponder {
+  class Responder extends BotResponder with Logging {
     def respondTo(message:Message) = message match {
       case PrivMsg(to, from, text) =>
-        println("PRIVMSG: " + to + ", " + from + " " + text)
+        logger.debug("PRIVMSG: " + to + ", " + from + " " + text)
         None
       case msg@Message(_, _, _) =>
-        println(msg)
+        logger.debug(msg)
         None
     }
   }
