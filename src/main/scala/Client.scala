@@ -1,6 +1,5 @@
 package org.conbere.irc
 
-import java.net.InetSocketAddress
 import ControlChars._
 import Tokens._
 import Messages._
@@ -15,11 +14,5 @@ class Client( val domainName:String
             , val password:String
             , val nickName:String
             , val realName:String) {
-
-  val hostName = java.net.InetAddress.getLocalHost.getHostName
-  val address = new InetSocketAddress(domainName, port)
-  val pass = Pass(password)
-  val nick = Nick(nickName)
-  val user = User(userName, hostName, domainName, realName)
 }
 

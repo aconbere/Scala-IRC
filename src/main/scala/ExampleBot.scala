@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.log4j.Logging
 
 object Main {
   class Responder extends BotResponder with Logging {
-    def respondTo(message:Message) = message match {
+    val respondTo = defaultResponse.orElse[Message,Option[Message]] {
       case PrivMsg(to, from, text) =>
         logger.debug("PRIVMSG: " + to + ", " + from + " " + text)
         None
@@ -18,17 +18,9 @@ object Main {
   }
 
   def main(args:Array[String]) = {
-    val port = 6667
-    val system = ActorSystem()
-    val rooms = List(Room("#testroom", None))
-    val client = new Client( "irc.test.server.com"
-                           , 6667
-                           , "testbot"
-                           , "password"
-                           , "testbot"
-                           , "Test Bot")
-    val responder = new Responder
-    val server = system.actorOf(Props(new Bot(client, rooms, responder)))
+    // val rooms = List(Room("#testroom", None))
+    Bot.start("irc.test.server.com", 6667, new Responder)
+    println("started")
   }
 }
 
