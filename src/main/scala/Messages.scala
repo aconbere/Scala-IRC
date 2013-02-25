@@ -128,7 +128,13 @@ object Messages {
           acc
       }
 
-      Message(None, Command("JOIN"), List(roomsN, keys))
+      val result = if (keys.isEmpty) {
+        List(roomsN)
+      } else {
+        List(roomsN, keys)
+      }
+
+      Message(None, Command("JOIN"), result)
     }
 
     def unapply(msg:Message) = {

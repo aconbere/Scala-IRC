@@ -4,18 +4,17 @@ import Messages._
 import Tokens._
 
 trait BotResponder {
-  val rooms:Option[List[Room]] = None
+  val rooms:List[Room] = List()
+  val respondTo:PartialFunction[Message,Option[Response]]
+  val onConnect:Option[Response] = None
 
-  val defaultResponse:PartialFunction[Message,Option[Message]] = {
+  val defaultResponse:PartialFunction[Message,Option[Response]] = {
     case Ping(from) =>
+      println("Ping: " + from)
       Some(Pong(from))
-    case Mode(params) if !rooms.isEmpty =>
-      Some(Join(rooms.get))
+    case msg@Mode(params) if !rooms.isEmpty =>
+      Some(Join(rooms))
   }
-
-  val respondTo:PartialFunction[Message,Option[Message]]
-
-  def onConnect:Option[Message] = None
 
 }
 
