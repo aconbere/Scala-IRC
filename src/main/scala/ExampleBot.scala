@@ -30,13 +30,13 @@ object Main extends Logging {
     val server = "irc.server.com"
     val port = 6667
 
-    val responder = new ExampleBot(server,
-                                   "testbot",
-                                   "testbot",
-                                   "password",
-                                   "Test Bot",
-                                   rooms)
+    val bot = new ExampleBot(server,
+                             "testbot",
+                             "testbot",
+                             "password",
+                             "Test Bot",
+                             rooms)
 
-    val actor = Client.start(server, port, responder)
+    val actor = Client.start(server, port, bot)
   }
 }
