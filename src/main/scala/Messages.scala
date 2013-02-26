@@ -38,7 +38,7 @@ object Messages {
     def unapply(msg:Message) = {
       msg match {
         case Message(Some(Prefix(from, _, _)), Command("PRIVMSG"), List(to, text)) =>
-          Some((to, from, text))
+          Some((from, to, text))
         case _ =>
           None
       }
@@ -141,6 +141,20 @@ object Messages {
       msg match {
         case Message(_, Command("JOIN"), List(rooms, keys)) =>
           Some((rooms, keys))
+        case _ =>
+          None
+      }
+    }
+  }
+
+  object Part {
+    def apply(channels:List[String]) =
+      Message(None, Command("PART"), List(channels.mkString(",")))
+
+    def unapply(msg:Message) = {
+      msg match {
+        case Message(_,Command("PART"), List(channels)) =>
+          Some(channels)
         case _ =>
           None
       }
