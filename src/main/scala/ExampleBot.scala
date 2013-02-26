@@ -1,6 +1,6 @@
 package org.conbere.irc
 
-import Tokens._
+import Tokens.{ Message, Response }
 import Messages._
 import akka.actor._
 import com.typesafe.scalalogging.log4j.Logging
@@ -10,15 +10,8 @@ class ExampleBot( val serverName:String
                 , val userName:String
                 , val password:String
                 , val realName:String
-                , override val rooms:List[Room])
-extends Bot with Logging {
-  val hostName = java.net.InetAddress.getLocalHost.getHostName
-
-  override val onConnect =
-    Some(Pass(password) ++=
-         Nick(nickName) ++=
-         User(userName, hostName, serverName, realName))
-
+                , val rooms:List[Room])
+extends ClassicBot with Logging {
   val respondTo = defaultResponse.orElse[Message,Option[Response]] {
     case PrivMsg(from, `nickName`, text) =>
       Some(PrivMsg(from, text))

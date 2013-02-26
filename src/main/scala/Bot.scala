@@ -4,8 +4,9 @@ import Messages._
 import Tokens._
 
 trait Bot {
-  val rooms:List[Room] = List()
+  val rooms:List[Room]
   val respondTo:PartialFunction[Message,Option[Response]]
+
   val onConnect:Option[Response] = None
 
   val defaultResponse:PartialFunction[Message,Option[Response]] = {
