@@ -12,8 +12,8 @@ trait ClassicBot extends Bot {
   val hostName = java.net.InetAddress.getLocalHost.getHostName
 
   override val onConnect =
-    Some(Pass(password) ++=
-         Nick(nickName) ++=
+    Some(Pass(password) +
+         Nick(nickName) +
          User(userName, hostName, serverName, realName))
 }
 

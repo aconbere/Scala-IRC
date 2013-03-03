@@ -27,14 +27,9 @@ object Tokens {
                  host.getOrElse("")).mkString(" "))
   }
 
-  trait Response {
-    def ++=(msg:Message):MessageCollection
-    val byteString:ByteString
-  }
-
   case class Message(prefix:Option[Prefix], command:Command, params:List[String])
   extends Token with Response {
-    def ++=(m:Message) = new MessageCollection(List(this, m))
+    def +(r:Response) = new ResponseCollection(List(this, r))
 
     def mkPrefixByteString(prefix:Option[Prefix]) =
        prefix.map { p => p.byteString }.getOrElse(ByteString(""))
@@ -62,13 +57,5 @@ object Tokens {
         command.byteString ++=
         SP ++= 
         ByteString(mkParamsString(params))).result
-  }
-
-  class MessageCollection(val ml:List[Message])
-  extends Token with Response {
-    def ++=(m:Message) = new MessageCollection(ml :+ m )
-    val byteString = ml.foldLeft(new ByteStringBuilder) {
-      (acc, m) => acc ++= m.byteString ++= CRLF
-    }.result
   }
 }
