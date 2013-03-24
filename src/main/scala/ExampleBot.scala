@@ -12,6 +12,8 @@ class ExampleBot( val serverName:String
                 , val realName:String
                 , val rooms:List[Room])
 extends ClassicBot with Logging {
+  import Implicits._
+
   val before = handleMessage {
     case PrivMsg(from, `nickName`, text) =>
       Some(PrivMsg(from, text))
@@ -24,7 +26,7 @@ extends ClassicBot with Logging {
       Some(PrivMsg("#chan", "hey"))
   }
 
-  val respondTo = and(defaultResponse, before, after)
+  val respondTo = defaultResponse + before + after
 }
 
 object Main extends Logging {

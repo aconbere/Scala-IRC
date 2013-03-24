@@ -19,6 +19,8 @@ fork in run := true
 
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 
+testOptions in Test += Tests.Argument("-oDF")
+
 libraryDependencies ++= Seq(
   "org.scalatest" % "scalatest_2.10" % "1.9.1" % "test"
 , "junit" % "junit" % "4.10" % "test"
@@ -28,7 +30,6 @@ libraryDependencies ++= Seq(
 , "com.typesafe" % "config" % "1.0.0"
 )
 
-testOptions in Test += Tests.Argument("-oDF")
 
 publishMavenStyle := true
 

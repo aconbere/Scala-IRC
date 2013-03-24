@@ -21,6 +21,8 @@ extends Actor with Logging {
   val state = IO.IterateeRef.Map.async[IO.Handle]()(context.dispatcher)
   val address = new InetSocketAddress(serverName, port)
 
+  var handle:Option[IO.SocketHandle] = None
+
   def utf8(bytes:ByteString) =
     bytes.decodeString("UTF-8").trim
 
@@ -40,17 +42,17 @@ extends Actor with Logging {
     }
 
   def writeResponseSocket(socket:IO.SocketHandle)(response:Option[Response]) = {
-    response match {
-      case Some(response) =>
-        println("Response: " + utf8(response.byteString))
-        socket.write((new ByteStringBuilder ++= response.byteString ++= CRLF).result)
-      case _ =>
-        // no response
+    for {
+      resp <- response
+    } {
+      println("Response: " + utf8(resp.byteString))
+      socket.write((new ByteStringBuilder ++= resp.byteString ++= CRLF).result)
     }
   }
 
   def receive = {
     case IO.Connected(socket, address) =>
+      handle = Some(socket)
       val writeResponse = writeResponseSocket(socket) _
 
       writeResponse(responder.onConnect)
@@ -58,13 +60,11 @@ extends Actor with Logging {
       state(socket).flatMap(_ =>
         IO.repeat {
           IO.takeUntil(CRLF).map { in =>
-            parseMessage(utf8(in)) match {
-              case Some(message) =>
-                if (responder.respondTo.isDefinedAt(message)) {
-                  writeResponse(responder.respondTo(message))
-                }
-              case None =>
-                // do nothing
+            for {
+              message <- parseMessage(utf8(in))
+              if responder.respondTo.isDefinedAt(message)
+            } {
+              writeResponse(responder.respondTo(message))
             }
           }
         }
@@ -76,5 +76,9 @@ extends Actor with Logging {
     case IO.Closed(socket, cause) =>
       state(socket)(IO.EOF)
       state -= socket
+      handle = None
+
+    case r:Response =>
+      handle.foreach { h => writeResponseSocket(h)(Some(r)) }
   }
 }

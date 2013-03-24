@@ -3,6 +3,7 @@ package org.conbere.irc
 import Tokens._
 
 object Messages {
+  type MessageHandler = PartialFunction[Message,Option[Response]]
   object Pong {
     def apply(to:String) =
       Message(None, Command("PONG"), List(to))
