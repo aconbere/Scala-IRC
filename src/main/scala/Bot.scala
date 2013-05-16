@@ -3,6 +3,11 @@ package org.conbere.irc
 import Messages._
 import Tokens._
 
+import scala.concurrent.duration.FiniteDuration
+
+class TickConfig(val initialDelay: FiniteDuration,
+                 val interval: FiniteDuration)
+
 trait Bot {
   // a list of channels to join
   val rooms:List[Room]
@@ -21,6 +26,12 @@ trait Bot {
     case Mode(params) if !rooms.isEmpty =>
       Some(Join(rooms))
   }
+
+  // Tell the client to send a Tick message to the Bot
+  // with initialDelay and interval times
+  val tickConfig:Option[TickConfig] = None
+
+  def tick():Option[Response] = None
 
   // helper for building respondTo
   def handleMessage(handler:MessageHandler):MessageHandler = handler

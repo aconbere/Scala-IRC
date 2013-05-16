@@ -10,9 +10,26 @@ import Tokens._
 import ControlChars._
 import Messages._
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
+sealed abstract trait TickLike
+
+case object Tick extends TickLike
+
 object Client extends Logging {
   def start(serverName:String, port:Int, responder:Bot) = {
-    ActorSystem().actorOf(Props(new Client(serverName, port, responder)))
+    val system = ActorSystem()
+    val client = new Client(serverName, port, responder)
+
+    val actor = system.actorOf(Props(client))
+
+    responder.tickConfig match {
+      case Some(t) =>
+        system.scheduler.schedule(t.initialDelay, t.interval)(actor ! Tick)
+      case _ =>
+    }
+
+    actor
   }
 }
 
@@ -20,6 +37,7 @@ class Client(serverName:String, port:Int, responder:Bot)
 extends Actor with Logging {
   val state = IO.IterateeRef.Map.async[IO.Handle]()(context.dispatcher)
   val address = new InetSocketAddress(serverName, port)
+
 
   var handle:Option[IO.SocketHandle] = None
 
@@ -80,5 +98,8 @@ extends Actor with Logging {
 
     case r:Response =>
       handle.foreach { h => writeResponseSocket(h)(Some(r)) }
+
+    case Tick =>
+      handle.foreach { h => writeResponseSocket(h)(responder.tick()) }
   }
 }

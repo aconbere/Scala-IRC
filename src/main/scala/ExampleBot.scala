@@ -3,7 +3,10 @@ package org.conbere.irc
 import Tokens.Message
 import Messages._
 import akka.actor._
+
+import scala.concurrent.duration._
 import com.typesafe.scalalogging.log4j.Logging
+import scala.language.postfixOps
 
 class ExampleBot( val serverName:String
                 , val nickName:String
@@ -27,6 +30,10 @@ extends ClassicBot with Logging {
   }
 
   val respondTo = defaultResponse + before + after
+
+  override val tickConfig = Some(new TickConfig(1 second, 100 milliseconds))
+
+  override def tick() = Some(PrivMsg("#chan", "Hi!"))
 }
 
 object Main extends Logging {
