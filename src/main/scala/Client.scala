@@ -6,38 +6,41 @@ import com.typesafe.scalalogging.log4j.Logging
 import akka.actor._
 import akka.util.{ ByteString, ByteStringBuilder }
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.{ FiniteDuration, MILLISECONDS }
+import scala.util.Random
+
 import Tokens._
 import ControlChars._
 import Messages._
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
-sealed abstract trait TickLike
-
-case object Tick extends TickLike
+case class Tick(room:Room)
 
 object Client extends Logging {
+  val system = ActorSystem("Irc")
+
+  def startTick(actor:ActorRef, room:Room, interval:Int):Unit = {
+    val nextInterval = (new Random()).nextInt(interval)
+    system.scheduler.scheduleOnce(new FiniteDuration(nextInterval, MILLISECONDS)) {
+      actor ! Tick(room)
+      startTick(actor, room, interval)
+    }
+  }
+
   def start(serverName:String, port:Int, responder:Bot) = {
-    val system = ActorSystem()
-    val client = new Client(serverName, port, responder)
+    val actor = system.actorOf(Props(new Client(serverName, port, responder)))
 
-    val actor = system.actorOf(Props(client))
-
-    responder.tickConfig match {
-      case Some(t) =>
-        system.scheduler.schedule(t.initialDelay, t.interval)(actor ! Tick)
-      case _ =>
+    responder.rooms.foreach { room:Room =>
+      responder.tickInterval.map { startTick(actor, room, _) }
     }
 
     actor
   }
 }
 
-class Client(serverName:String, port:Int, responder:Bot)
-extends Actor with Logging {
+class Client(serverName:String, port:Int, responder:Bot) extends Actor with Logging {
   val state = IO.IterateeRef.Map.async[IO.Handle]()(context.dispatcher)
   val address = new InetSocketAddress(serverName, port)
-
 
   var handle:Option[IO.SocketHandle] = None
 
@@ -99,7 +102,7 @@ extends Actor with Logging {
     case r:Response =>
       handle.foreach { h => writeResponseSocket(h)(Some(r)) }
 
-    case Tick =>
-      handle.foreach { h => writeResponseSocket(h)(responder.tick()) }
+    case Tick(room) =>
+      handle.foreach { h => writeResponseSocket(h)(responder.tick(room)) }
   }
 }

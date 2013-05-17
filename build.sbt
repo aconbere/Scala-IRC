@@ -1,6 +1,10 @@
+import AssemblyKeys._
+
+assemblySettings
+
 name := "irc"
 
-version := "0.2.0"
+version := "0.3.0"
 
 organization := "org.conbere"
 
