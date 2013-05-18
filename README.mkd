@@ -26,7 +26,7 @@ extends ClassicBot {
 
 For ease of use we'll grab `Messages` from the irc package. These form the foundational datatypes for using irc. `Messages` provides common extractors for all of the irc commands (PONG, PRIVMSG, JOIN, etc.) as well as providing an easy helper to produce a Message object for pushing back to the server. `Tokens` 
   
-```
+```scala
   import Messages._
 
   val toMePattern = ("^(" + nickName + "[:| ].*)").r
@@ -34,7 +34,7 @@ For ease of use we'll grab `Messages` from the irc package. These form the found
 
 To build a bot the most common action is to respond to input from other clients on the server. To help with that, the `Bot` trait requires the `respondTo` method. `respondTo` is a `PartialFunction` takes in a `Message` object and return an optional `Response`.
 
-```
+```scala
   val respondTo = defaultResponse.orElse {
     case PrivMsg(from, `nickName`, _) =>
       Some(PrivMsg(from, "Hi " + from + " this is a private message"))
@@ -48,6 +48,6 @@ Here you can see that we're using the `defaultResponse` method to help. This wil
 And finally we match against PrivMsg's comming in looking for some simple patterns, and respond with new PrivMsgs.
 
 
-```
+```scala
 }
 ```
