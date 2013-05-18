@@ -1,0 +1,53 @@
+# Scala IRC
+
+Scala irc is a small irc framework focused on a simple interface for receiving and responding to messages and composable interfaces.
+
+## Installation
+
+```scala
+libraryDependencies += "org.conbere" %% "irc" % "0.3.0"
+```
+
+## Usage: Bots
+
+The easiest way to get started is to extend the `ClassicBot` trait
+
+``` scala
+import org.conbere.irc._
+
+class MyBot( val serverName:String
+           , val nickName:String
+           , val userName:String
+           , val password:String
+           , val realName:String
+           , val rooms:List[Room])
+extends ClassicBot {
+```
+
+For ease of use we'll grab `Messages` from the irc package. These form the foundational datatypes for using irc. `Messages` provides common extractors for all of the irc commands (PONG, PRIVMSG, JOIN, etc.) as well as providing an easy helper to produce a Message object for pushing back to the server. `Tokens` 
+  
+```
+  import Messages._
+
+  val toMePattern = ("^(" + nickName + "[:| ].*)").r
+```
+
+To build a bot the most common action is to respond to input from other clients on the server. To help with that, the `Bot` trait requires the `respondTo` method. `respondTo` is a `PartialFunction` takes in a `Message` object and return an optional `Response`.
+
+```
+  val respondTo = defaultResponse.orElse {
+    case PrivMsg(from, `nickName`, _) =>
+      Some(PrivMsg(from, "Hi " + from + " this is a private message"))
+    case PrivMsg(from, channel, toMePattern(_match)) =>
+      Some(PrivMsg(from, "Hi " + from + " this is a channel message directed at me"))
+  }
+```
+
+Here you can see that we're using the `defaultResponse` method to help. This will set up sending credentials, and responding to any `Ping` messages from the server. We're also taking advantage of respondTo being a PartialFucntion and using the orElse method. This allows us to chain helpers together, in this case the matches in defaultResponse will short circuit, catching those messages before they get to our handler.
+
+And finally we match against PrivMsg's comming in looking for some simple patterns, and respond with new PrivMsgs.
+
+
+```
+}
+```

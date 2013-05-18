@@ -32,7 +32,6 @@ extends ClassicBot with Logging {
   val respondTo = defaultResponse + before + after
 
   override val tickInterval = Some(1000)
-
   override def tick(room:Room) = Some(PrivMsg(room.name, "Hi!"))
 }
 

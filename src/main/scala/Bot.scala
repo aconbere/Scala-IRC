@@ -22,7 +22,10 @@ trait Bot {
       Some(Join(rooms))
   }
 
+  // a time in milliseconds to wait until calling tick
   val tickInterval:Option[Int] = None
+
+  // called in tickInterval
   def tick(room:Room):Option[Response] = None
 
   // helper for building respondTo
