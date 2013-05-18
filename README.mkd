@@ -34,6 +34,10 @@ For ease of use we'll grab `Messages` from the irc package. These form the found
 
 To build a bot the most common action is to respond to input from other clients on the server. To help with that, the `Bot` trait requires the `respondTo` method. `respondTo` is a `PartialFunction` takes in a `Message` object and return an optional `Response`.
 
+Here you can see that we're using the `defaultResponse` method to help. This will set up sending credentials, and responding to any `Ping` messages from the server. We're also taking advantage of respondTo being a PartialFucntion and using the orElse method. This allows us to chain helpers together, in this case the matches in defaultResponse will short circuit, catching those messages before they get to our handler.
+
+And finally we match against PrivMsg's comming in looking for some simple patterns, and respond with new PrivMsgs.
+
 ```scala
   val respondTo = defaultResponse.orElse {
     case PrivMsg(from, `nickName`, _) =>
@@ -41,13 +45,22 @@ To build a bot the most common action is to respond to input from other clients 
     case PrivMsg(from, channel, toMePattern(_match)) =>
       Some(PrivMsg(from, "Hi " + from + " this is a channel message directed at me"))
   }
+}
 ```
 
-Here you can see that we're using the `defaultResponse` method to help. This will set up sending credentials, and responding to any `Ping` messages from the server. We're also taking advantage of respondTo being a PartialFucntion and using the orElse method. This allows us to chain helpers together, in this case the matches in defaultResponse will short circuit, catching those messages before they get to our handler.
-
-And finally we match against PrivMsg's comming in looking for some simple patterns, and respond with new PrivMsgs.
-
+The last task is to produce an runable executable. To run your bot the Client object defines a start method which given a server and port will host your bot in an Actor.
 
 ```scala
+object Main {
+  def main(args:Array[String]) = {
+    val server = "irc.ny4dev.etsy.com"
+    val port = 6667
+
+    val rooms = List(Room("#testroom", None))
+
+    val bot = new MyBot(server, "bot", "bot", "pass", "Bot", rooms)
+
+    val actor = Client.start(server, port, bot)
+  }
 }
 ```
