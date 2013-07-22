@@ -13,17 +13,5 @@ object Implicits {
         case (Some(x), Some(y)) => Some(x + y)
       }
   }
-
-  implicit class AddableMessageHandler(a:MessageHandler) {
-    def + (b:MessageHandler):MessageHandler =
-      new PartialFunction[Message, Option[Response]] {
-        def apply(m:Message) =
-          a.lift(m).getOrElse(None) +
-          b.lift(m).getOrElse(None)
-
-        def isDefinedAt(m:Message) =
-          a.isDefinedAt(m) || b.isDefinedAt(m)
-      }
-  }
 }
 

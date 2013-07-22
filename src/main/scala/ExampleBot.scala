@@ -7,32 +7,31 @@ import akka.actor._
 import scala.concurrent.duration._
 import com.typesafe.scalalogging.log4j.Logging
 import scala.language.postfixOps
+import akka.actor.ActorSystem
 
-class ExampleBot( val serverName:String
-                , val nickName:String
-                , val userName:String
-                , val password:String
-                , val realName:String
-                , val rooms:List[Room])
-extends ClassicBot with Logging {
+class ExampleBot(
+  val serverName:String,
+  val nickName:String,
+  val userName:String,
+  val password:String,
+  val realName:String,
+  val rooms:List[Room]
+) extends ClassicBot with Logging {
   import Implicits._
 
-  val before = handleMessage {
+  def before:Receive = {
     case PrivMsg(from, `nickName`, text) =>
-      Some(PrivMsg(from, text))
-    case PrivMsg(from, to, text) =>
-      None
+      sender ! PrivMsg(from, text)
   }
 
-  val after = handleMessage {
+  def after:Receive = {
     case Ping(from) =>
-      Some(PrivMsg("#chan", "hey"))
+      sender ! PrivMsg(from, "hey")
   }
 
-  val respondTo = defaultResponse + before + after
-
-  override val tickInterval = Some(1000)
-  override def tick(room:Room) = Some(PrivMsg(room.name, "Hi!"))
+  def receive = onConnect orElse
+                defaultHandler orElse
+                before orElse after
 }
 
 object Main extends Logging {
@@ -40,16 +39,19 @@ object Main extends Logging {
   def main(args:Array[String]) = {
     val rooms = List(Room("#testroom", None))
 
-    val server = "irc.server.com"
+    val serverName = "irc.server.com"
     val port = 6667
 
-    val bot = new ExampleBot(server,
-                             "testbot",
-                             "testbot",
-                             "password",
-                             "Test Bot",
-                             rooms)
+    val system = ActorSystem("Irc")
 
-    val actor = Client.start(server, port, bot)
+    val botProps =
+      Props(classOf[ExampleBot], serverName, "testbot", "testbot", "password", "Test Bot", rooms)
+
+    val bot = system.actorOf(botProps)
+
+    val clientProps =
+      Props(classOf[Client], serverName, port, bot)
+
+    val client = system.actorOf(clientProps)
   }
 }

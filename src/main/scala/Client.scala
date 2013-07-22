@@ -7,38 +7,14 @@ import akka.actor._
 import akka.util.{ ByteString, ByteStringBuilder }
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.{ FiniteDuration, MILLISECONDS }
-import scala.util.Random
 
 import Tokens._
 import ControlChars._
 import Messages._
 
-case class Tick(room:Room)
+case object Connected
 
-object Client extends Logging {
-  val system = ActorSystem("Irc")
-
-  def startTick(actor:ActorRef, room:Room, interval:Int):Unit = {
-    val nextInterval = (new Random()).nextInt(interval)
-    system.scheduler.scheduleOnce(new FiniteDuration(nextInterval, MILLISECONDS)) {
-      actor ! Tick(room)
-      startTick(actor, room, interval)
-    }
-  }
-
-  def start(serverName:String, port:Int, responder:Bot) = {
-    val actor = system.actorOf(Props(new Client(serverName, port, responder)))
-
-    responder.rooms.foreach { room:Room =>
-      responder.tickInterval.map { startTick(actor, room, _) }
-    }
-
-    actor
-  }
-}
-
-class Client(serverName:String, port:Int, responder:Bot) extends Actor with Logging {
+class Client(serverName:String, port:Int, responder:ActorRef) extends Actor with Logging {
   val state = IO.IterateeRef.Map.async[IO.Handle]()(context.dispatcher)
   val address = new InetSocketAddress(serverName, port)
 
@@ -62,30 +38,17 @@ class Client(serverName:String, port:Int, responder:Bot) extends Actor with Logg
         None
     }
 
-  def writeResponseSocket(socket:IO.SocketHandle)(response:Option[Response]) = {
-    for {
-      resp <- response
-    } {
-      println("Response: " + utf8(resp.byteString))
-      socket.write((new ByteStringBuilder ++= resp.byteString ++= CRLF).result)
-    }
-  }
-
   def receive = {
     case IO.Connected(socket, address) =>
       handle = Some(socket)
-      val writeResponse = writeResponseSocket(socket) _
 
-      writeResponse(responder.onConnect)
+      responder ! Connected
 
       state(socket).flatMap(_ =>
         IO.repeat {
           IO.takeUntil(CRLF).map { in =>
-            for {
-              message <- parseMessage(utf8(in))
-              if responder.respondTo.isDefinedAt(message)
-            } {
-              writeResponse(responder.respondTo(message))
+            for ( message <- parseMessage(utf8(in))) {
+              responder ! message
             }
           }
         }
@@ -99,10 +62,11 @@ class Client(serverName:String, port:Int, responder:Bot) extends Actor with Logg
       state -= socket
       handle = None
 
-    case r:Response =>
-      handle.foreach { h => writeResponseSocket(h)(Some(r)) }
-
-    case Tick(room) =>
-      handle.foreach { h => writeResponseSocket(h)(responder.tick(room)) }
+    case response:Response =>
+      handle.foreach { socket =>
+        socket.write(
+          (new ByteStringBuilder ++= response.byteString ++= CRLF).result
+        )
+      }
   }
 }

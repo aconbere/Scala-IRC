@@ -4,7 +4,7 @@ assemblySettings
 
 name := "irc"
 
-version := "0.3.0"
+version := "0.4.0"
 
 organization := "org.conbere"
 
@@ -28,12 +28,11 @@ testOptions in Test += Tests.Argument("-oDF")
 libraryDependencies ++= Seq(
   "org.scalatest" % "scalatest_2.10" % "1.9.1" % "test"
 , "junit" % "junit" % "4.10" % "test"
-, "com.typesafe.akka" %% "akka-actor" % "2.1.0"
+, "com.typesafe.akka" %% "akka-actor" % "2.2.0"
 , "org.apache.logging.log4j" % "log4j-core" % "2.0-beta3"
 , "com.typesafe" %% "scalalogging-log4j" % "1.0.1"
 , "com.typesafe" % "config" % "1.0.0"
 )
-
 
 publishMavenStyle := true
 

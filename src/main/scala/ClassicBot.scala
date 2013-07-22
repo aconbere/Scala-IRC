@@ -1,6 +1,7 @@
 package org.conbere.irc
 
 import Messages._
+import akka.actor._
 
 trait ClassicBot extends Bot {
   val serverName:String
@@ -11,9 +12,10 @@ trait ClassicBot extends Bot {
 
   val hostName = java.net.InetAddress.getLocalHost.getHostName
 
-  override val onConnect =
-    Some(Pass(password) +
-         Nick(nickName) +
-         User(userName, hostName, serverName, realName))
+  def onConnect:Receive =  {
+    case Connected =>
+      sender !
+        (Pass(password) + Nick(nickName) + User(userName, hostName, serverName, realName))
+  }
 }
 
