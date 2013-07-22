@@ -32,9 +32,7 @@ For ease of use we'll grab `Messages` from the irc package. These form the found
   val toMePattern = ("^(" + nickName + "[:| ].*)").r
 ```
 
-To build a bot the most common action is to respond to input from other clients on the server. To help with that, the `Bot` trait requires the `respondTo` method. `respondTo` is a `PartialFunction` takes in a `Message` object and return an optional `Response`.
-
-Here you can see that we're using the `defaultResponse` method to help. This will set up sending credentials, and responding to any `Ping` messages from the server. We're also taking advantage of respondTo being a PartialFucntion and using the orElse method. This allows us to chain helpers together, in this case the matches in defaultResponse will short circuit, catching those messages before they get to our handler.
+Bots are simply an actor that recieves messages from the Client, defining the actor's receive method is sufficient to begin. There are two helper methods `onConnect` and `defaultHandler` which make sure that user authentication is set up and pings are handled. You'll notice that recieve's are `PartialFunctions` a feature that we use to chain behavior. To respond you can send a message back to the sender `sender ! PrivMsg(from, msg)`.
 
 And finally we match against PrivMsg's comming in looking for some simple patterns, and respond with new PrivMsgs.
 
